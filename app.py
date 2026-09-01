@@ -65,7 +65,20 @@ x_new = pd.DataFrame([[pH, N, P, K, OM, moisture, temp, rain, density, chlorate]
 yhat = model.predict(x_new)[0]
 st.metric("ผลผลิตคาดการณ์", f"{yhat:.0f} กก./ไร่")
 
-# ปัจจัยสำคัญ
-st.subheader("ปัจจัยที่มีผลต่อผลผลิตมากที่สุด")
-imp = pd.Series(model.feature_importances_, index=X.columns).sort_values(ascending=False)
-st.bar_chart(imp)
+# ปัจจัยสำคัญ — ดูจากค่าสหสัมพันธ์ (correlation)
+st.subheader("ปัจจัยที่สัมพันธ์กับผลผลิตมากที่สุด")
+corr = df.corr()
+corr_yield = corr["yield"].drop("yield").sort_values(ascending=False)
+st.bar_chart(corr_yield)
+st.caption("ค่าใกล้ +1 = ปัจจัยเพิ่ม ผลผลิตเพิ่มตาม · ใกล้ -1 = ปัจจัยเพิ่ม ผลผลิตลด · ใกล้ 0 = ไม่เกี่ยวกัน")
+
+with st.expander("ดูตารางสหสัมพันธ์ทั้งหมด (correlation matrix)"):
+    st.dataframe(corr.style.background_gradient(cmap="RdBu_r", vmin=-1, vmax=1)
+                           .format("{:.2f}"))
+    off_diag = corr.drop(columns=["yield"]).drop(index=["yield"]).abs().values
+    off_diag = off_diag[off_diag < 0.999]
+    st.caption(
+        f"ปัจจัยด้วยกันเองสัมพันธ์กันเฉลี่ย {off_diag.mean():.2f} "
+        "— ถ้าค่านี้สูงใกล้ 1 แปลว่าทุกปัจจัยขึ้นลงพร้อมกัน "
+        "จะแยกไม่ออกว่าตัวไหนมีผลจริง (multicollinearity) ต้องใช้ข้อมูลจริงที่หลากหลายกว่านี้"
+    )
